@@ -296,6 +296,60 @@
   }
   .replay-btn:hover{opacity:0.92;}
 
+  .wrong-list{
+    width:100%;
+    text-align:left;
+    margin-top:4px;
+    max-height:260px;
+    overflow-y:auto;
+    border-top:1px solid var(--line);
+    padding-top:12px;
+  }
+  .wrong-list .wrong-title{
+    font-family:'Inter';
+    font-weight:600;
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--pine-soft);
+    margin-bottom:8px;
+  }
+  .wrong-item{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    gap:10px;
+    padding:7px 0;
+    border-bottom:1px solid var(--line);
+  }
+  .wrong-item:last-child{ border-bottom:none; }
+  .wrong-item .wi-fr{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size:15px;
+    white-space:nowrap;
+  }
+  .wrong-item .wi-latin{
+    font-family:'Fraunces', serif;
+    font-style:italic;
+    font-size:13px;
+    color:var(--pine-soft);
+    text-align:right;
+  }
+  .wrong-item .wi-count{
+    font-family:'Inter';
+    font-size:11px;
+    color:var(--rust);
+    font-weight:600;
+    margin-left:6px;
+    white-space:nowrap;
+  }
+  .wrong-empty{
+    font-size:13px;
+    color:var(--pine-soft);
+    font-style:italic;
+  }
+
   @media (max-width: 380px){
     h1{ font-size:22px; }
     .sub{ font-size:12.5px; }
@@ -332,6 +386,7 @@
     <p class="eyebrow" style="margin-bottom:0;">Terminé</p>
     <div class="big" id="finalScore">0/0</div>
     <p id="finalMsg">Bien joué.</p>
+    <div class="wrong-list" id="wrongList"></div>
     <button class="replay-btn" id="replayBtn">Recommencer</button>
   </div>
 
@@ -658,6 +713,7 @@ function buildDeck(){
 let deck = [];
 let idx = 0;
 let score = 0;
+let wrongEntries = [];
 let dragging = false;
 let startX = 0, startY = 0, curX = 0, curY = 0;
 let currentCardEl = null;
@@ -670,11 +726,13 @@ const endScreen = document.getElementById('endScreen');
 const controls = document.getElementById('controls');
 const finalScore = document.getElementById('finalScore');
 const finalMsg = document.getElementById('finalMsg');
+const wrongList = document.getElementById('wrongList');
 
 function init(){
   deck = buildDeck();
   idx = 0;
   score = 0;
+  wrongEntries = [];
   endScreen.classList.remove('show');
   controls.style.display = 'flex';
   stage.style.display = 'block';
@@ -795,7 +853,11 @@ function swipeAway(card, dir, entry){
 
 function registerAnswer(userSaysMatch, entry){
   const correct = (userSaysMatch === entry.isMatch);
-  if(correct) score++;
+  if(correct){
+    score++;
+  } else {
+    wrongEntries.push(entry);
+  }
 }
 
 function manualSwipe(dir){
@@ -816,10 +878,52 @@ function finish(){
   scoreLabel.textContent = 'Score ' + score;
   finalScore.textContent = score + '/' + deck.length;
   let msg = 'Continue à réviser, tu vas y arriver.';
-  if(score === deck.length) msg = 'Parfait ! Les trois drogues sont acquises.';
+  if(score === deck.length) msg = 'Parfait ! Toutes les drogues sont acquises.';
   else if(score >= deck.length*0.7) msg = 'Bien joué, presque parfait.';
   finalMsg.textContent = msg;
+  renderWrongList();
   endScreen.classList.add('show');
+}
+
+function renderWrongList(){
+  wrongList.innerHTML = '';
+  if(wrongEntries.length === 0){
+    const p = document.createElement('p');
+    p.className = 'wrong-empty';
+    p.textContent = 'Aucune erreur — bravo !';
+    wrongList.appendChild(p);
+    return;
+  }
+  const title = document.createElement('div');
+  title.className = 'wrong-title';
+  title.textContent = 'À revoir';
+  wrongList.appendChild(title);
+
+  // Aggregate by specimen id, counting how many times each was missed
+  const counts = {};
+  const order = [];
+  wrongEntries.forEach(entry=>{
+    const s = entry.specimen;
+    if(!counts[s.id]){
+      counts[s.id] = { specimen: s, count: 0 };
+      order.push(s.id);
+    }
+    counts[s.id].count++;
+  });
+
+  order.forEach(id=>{
+    const { specimen, count } = counts[id];
+    const row = document.createElement('div');
+    row.className = 'wrong-item';
+    row.innerHTML = `
+      <span class="wi-fr">${specimen.fr}</span>
+      <span>
+        <span class="wi-latin">${specimen.latin}</span>
+        ${count > 1 ? `<span class="wi-count">×${count}</span>` : ''}
+      </span>
+    `;
+    wrongList.appendChild(row);
+  });
 }
 
 document.getElementById('replayBtn').addEventListener('click', init);
