@@ -304,6 +304,20 @@
     overflow-y:auto;
     border-top:1px solid var(--line);
     padding-top:12px;
+    position:relative;
+    -webkit-overflow-scrolling:touch;
+  }
+  .wrong-list::after{
+    content:'';
+    position:sticky;
+    display:block;
+    bottom:0;
+    left:0;
+    right:0;
+    height:24px;
+    margin-top:-24px;
+    background:linear-gradient(to bottom, transparent, var(--card-bg));
+    pointer-events:none;
   }
   .wrong-list .wrong-title{
     font-family:'Inter';
@@ -313,6 +327,17 @@
     letter-spacing:0.06em;
     color:var(--pine-soft);
     margin-bottom:8px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+  .wrong-title .wrong-scroll-hint{
+    font-weight:400;
+    text-transform:none;
+    letter-spacing:0;
+    font-size:11px;
+    color:var(--rust);
+    opacity:0.85;
   }
   .wrong-item{
     display:flex;
@@ -894,10 +919,6 @@ function renderWrongList(){
     wrongList.appendChild(p);
     return;
   }
-  const title = document.createElement('div');
-  title.className = 'wrong-title';
-  title.textContent = 'À revoir';
-  wrongList.appendChild(title);
 
   // Aggregate by specimen id, counting how many times each was missed
   const counts = {};
@@ -910,6 +931,11 @@ function renderWrongList(){
     }
     counts[s.id].count++;
   });
+
+  const title = document.createElement('div');
+  title.className = 'wrong-title';
+  title.innerHTML = `<span>À revoir (${order.length})</span>` + (order.length > 4 ? `<span class="wrong-scroll-hint">glisser pour voir plus ↓</span>` : '');
+  wrongList.appendChild(title);
 
   order.forEach(id=>{
     const { specimen, count } = counts[id];
